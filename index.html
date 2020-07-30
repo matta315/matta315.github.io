@@ -47,27 +47,78 @@
 		  fill: none;
 		  pointer-events: all;
 		}
+		.annotation-note-label{
+			font-size: 12px;
+			font-style: italic;
+		}
+		.annotation-note-title{
+			font-size: 12px;
+			color: gray;
+			font-style: oblique;
+		}
+
 		</style>
 	</head>
 	<body>
 		<h1 align="center">Seattle 911's Call Year 2010&ndash;2020</h1>
+		<h2 align="center">What's make people call 911 in Seattle?</h2>
 
-		<div style="float: left; display: block">
-			<div id="option"></div>
-			<div id="graph_area">
-				<svg width="1180" height="920"></svg>
-			</div>
-		</div>
+		<table>
+		<tr>
+			<td style="padding: 0; vertical-align: top">
+				<div style="display: block;">
+					<div id="option"></div>
+					<div id="graph_area">
+						<svg width="1000" height="720"></svg>
+					</div>
+				</div>
+			</td>
+			<td style="padding: 0; vertical-align: top">
+				<div id="paragraph" style="display: block;">
+					<p>Project by: Anh Nguyen for<p>
+					<h3>About the data Set</h3>
+					<p>
+						This data set conducted by <b>Seattle Fire Department 911</b> and provided by <b>City of Seattle</b> <br />
 
-		<div id="paragraph" style="float: left; display: block">
-			<p>
-				Write your text here..<br />
-			</p>
-			<p>
-				Next paragraph..<br />
-				And new-line text..<br />
-			</p>
-		</div>
+						<a href="https://data.seattle.gov/Public-Safety/Seattle-Real-Time-Fire-911-Calls/kzjm-xkqj" dataset_source></a>
+
+						The original data include around 1.48M observations with 7 columns: <br/>
+
+						<ul>
+						  <li>Address (Location of Incident)</li>
+						  <li>Type (Response Type)</li>
+						  <li>Datetime</li>
+							<li>Datetime</li>
+							<li>Latitude</li>
+							<li>Longtitude</li>
+							<li>Report Location</li>
+							<li>Incident Number</li>
+						</ul>
+					</p>
+
+					<h3> About the Top Graph </h3>
+					<p>
+						Next paragraph..<br />
+						And new-line text..<br />
+					</p>
+
+					<h3> About the Bottom Graph </h3>
+					<p>
+
+						Next paragraph..<br />
+						And new-line text..<br />
+
+
+					</p>
+
+				</div>
+			</td>
+		</tr>
+		</table>
+
+
+
+
 
 		<script type="text/javascript">
 
@@ -76,10 +127,10 @@
 
 	var the_svg = d3.select("svg"),
 		margin = {top: 20, right: 340, bottom: 210, left: 40},
-		margin2 = {top: 470, right: 340, bottom: 30, left: 40},
+		margin2 = {top: 370, right: 340, bottom: 30, left: 40},
 		svg_width = +the_svg.attr("width") - margin.left - margin.right,
-		svg_height = +the_svg.attr("height") - margin.top - margin.bottom - 300,
-		svg_height2 = +the_svg.attr("height") - margin2.top - margin2.bottom - 300;
+		svg_height = +the_svg.attr("height") - margin.top - margin.bottom - 200,
+		svg_height2 = +the_svg.attr("height") - margin2.top - margin2.bottom - 200;
 
 	// For converting strings to Dates
 	var parseTime = d3.timeParse("%Y-%m");
@@ -328,7 +379,7 @@
 					.append("rect")
 					.attr("class", "legend item")
 					.attr("x", svg_width + 60)
-					.attr("y", function(d,i){ return 250 + i*(legend_item_size+5)}) // 100 is where the first dot appears. 25 is the distance between dots
+					.attr("y", function(d,i){ return 200 + i*(legend_item_size+5)}) // 100 is where the first dot appears. 25 is the distance between dots
 					.attr("width", legend_item_size)
 					.attr("height", legend_item_size)
 					.style("fill", function(d) { return color_palette(d) })
@@ -342,7 +393,7 @@
 					.append("text")
 					.attr("class", "legend label")
 					.attr("x", svg_width + 60 + legend_item_size*1.2)
-					.attr("y", function(d,i){ return 250 + i*(legend_item_size+5) + (legend_item_size/2)}) // 100 is where the first dot appears. 25 is the distance between dots
+					.attr("y", function(d,i){ return 200 + i*(legend_item_size+5) + (legend_item_size/2)}) // 100 is where the first dot appears. 25 is the distance between dots
 					.style("fill", function(d) { return color_palette(d) })
 					.text(function(d){ return d})
 					.attr("text-anchor", "left")
@@ -385,21 +436,21 @@
 					{
 						data: {date: "2012-07",	height: 6100, msg: "Highest 911 calls every July"},
 						showDate: true,
-						dy: 200,
+						dy: 180,
 						dx: 0,
 						emphasize: 2
 					},
 					{
 						data: {date: "2016-07",	height: 7000, msg: "Highest 911 calls every July"},
 						showDate: true,
-						dy: 200,
+						dy: 180,
 						dx: 0,
 						emphasize: 2
 					},
 					{
 						data: {date: "2020-03",	height: 5800, msg: "911 calls dropped significantly after COVID-19 stay-home order"},
 						showDate: true,
-						dy: 100,
+						dy: 120,
 						dx: 60,
 						emphasize: 2
 					},
