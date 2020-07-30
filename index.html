@@ -1,0 +1,463 @@
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3: Stacked area chart</title>
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<!--<script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>-->
+    	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+		<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/1.12.1/d3-annotation.min.js"></script>-->
+		<!-- only works with default version https://cdnjs.com/libraries/d3-annotation/2.4.0 -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.4.0/d3-annotation.min.js"></script>
+		<style type="text/css">
+			.area {
+				stroke: none;
+			}
+			.focus_area_item {
+			  	clip-path: url(#clip);
+			}
+			.area:hover {
+				fill: yellow;
+			}
+      svg {
+        background-color: white;
+      }
+      input[type=checkbox] {
+		  margin: 8px 4px;
+		  box-sizing: border-box;
+		}
+	  label {
+		  margin-right: 8px;
+	  }
+      .annotation path.connector-arrow,
+      .title text, .annotation text,
+      .annotation.callout.circle .annotation-subject path{
+        fill: var(--accent-color);
+      }
+      .annotation-note-bg {
+        fill: black;
+      }
+      .annotation-note-title {
+        font-weight: bold;
+      }
+      .annotation.xythreshold {
+        cursor: move;
+      }
+		.zoom {
+		  cursor: move;
+		  fill: none;
+		  pointer-events: all;
+		}
+		</style>
+	</head>
+	<body>
+		<h1 align="center">Seattle 911's Call Year 2010&ndash;2020</h1>
+
+		<div style="float: left; display: block">
+			<div id="option"></div>
+			<div id="graph_area">
+				<svg width="1180" height="920"></svg>
+			</div>
+		</div>
+
+		<div id="paragraph" style="float: left; display: block">
+			<p>
+				Write your text here..<br />
+			</p>
+			<p>
+				Next paragraph..<br />
+				And new-line text..<br />
+			</p>
+		</div>
+
+		<script type="text/javascript">
+
+	var GRAPH_INIT = undefined,
+		ALL_911_TYPES = [];
+
+	var the_svg = d3.select("svg"),
+		margin = {top: 20, right: 340, bottom: 210, left: 40},
+		margin2 = {top: 470, right: 340, bottom: 30, left: 40},
+		svg_width = +the_svg.attr("width") - margin.left - margin.right,
+		svg_height = +the_svg.attr("height") - margin.top - margin.bottom - 300,
+		svg_height2 = +the_svg.attr("height") - margin2.top - margin2.bottom - 300;
+
+	// For converting strings to Dates
+	var parseTime = d3.timeParse("%Y-%m");
+	var formatTime = d3.timeFormat("%b %Y");
+
+	// color palette for different types of 911 calls
+	var color_palette = d3.scaleOrdinal().range(d3.schemeSet2);
+
+	// x scales for main graph & context graph
+	var xScale  = d3.scaleTime().range([0, svg_width]),
+		xScale2 = d3.scaleTime().range([0, svg_width]),
+	// y scales for main graph & context graph
+		yScale  = d3.scaleLinear().range([svg_height, 0]),
+		yScale2 = d3.scaleLinear().range([svg_height2, 0]);
+
+	var xAxis = d3.axisBottom(xScale).ticks(10).tickFormat(formatTime),
+		xAxis2 = d3.axisBottom(xScale2).ticks(20).tickFormat(formatTime),
+		yAxis = d3.axisRight(yScale).ticks(10);
+
+	var brush = d3.brushX()
+			.extent([[0,0], [svg_width, svg_height2]])
+			.on("brush end", brushed);
+	var zoom = d3.zoom()
+			.scaleExtent([1, Infinity])
+			.translateExtent([[0, 0], [svg_width, svg_height]])
+			.extent([[0, 0], [svg_width, svg_height]])
+			.on("zoom", zoomed);
+
+	// Area generator
+	var area = d3.area()
+			//.curve(d3.curveMonotoneX)
+			.x(function(d) { return xScale(d.data.date); })
+			//.y0(svg_height)
+			.y0(function(d) { return yScale(d[0]); })
+			.y1(function(d) { return yScale(d[1]); });
+	var area2 = d3.area()
+			//.curve(d3.curveMonotoneX)
+			.x(function(d) { return xScale2(d.data.date); })
+			//.y0(svg_height2)
+			.y0(function(d) { return yScale2(d[0]); })
+			.y1(function(d) { return yScale2(d[1]); });
+
+	the_svg.append("defs").append("clipPath")
+			.attr("id", "clip")
+			.append("rect")
+			.attr("width", svg_width)
+			.attr("height", svg_height);
+
+	var the_focus = the_svg.append("g")
+		.attr("class", "focus")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	var the_context = the_svg.append("g")
+		.attr("class", "context")
+		.attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+	//Set up stack method
+	var stack =  d3.stack().order(d3.stackOrderDescending);
+	var stack2 = d3.stack().order(d3.stackOrderDescending);
+
+	function manual_brushed() {
+		var s = xScale2.range();
+		xScale.domain(s.map(xScale2.invert, xScale2));
+		the_focus.selectAll(".focus_area_item").attr("d", area);
+		the_focus.select(".axis.x").call(xAxis);
+		the_svg.select(".zoom").call(
+				zoom.transform,
+				d3.zoomIdentity
+						.scale(svg_width / (s[1] - s[0]))
+						.translate(-s[0], 0)
+		);
+	}
+
+	function brushed() {
+		// ignore brush-by-zoom
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return;
+
+		var s = d3.event.selection || xScale2.range();
+		xScale.domain(s.map(xScale2.invert, xScale2));
+		the_focus.selectAll(".focus_area_item").attr("d", area);
+		the_focus.select(".axis.x").call(xAxis);
+		the_svg.select(".zoom").call(
+				zoom.transform,
+				d3.zoomIdentity
+						.scale(svg_width / (s[1] - s[0]))
+						.translate(-s[0], 0)
+		);
+	}
+
+	function zoomed() {
+		// ignore zoom-by-brush
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return;
+
+		var t = d3.event.transform;
+		xScale.domain(t.rescaleX(xScale2).domain());
+		the_focus.selectAll(".focus_area_item").attr("d", area);
+		the_focus.select(".axis.x").call(xAxis);
+		the_context.select(".brush").call(brush.move, xScale.range().map(t.invertX, t));
+	}
+
+	//Function for converting CSV values from strings to Dates and numbers
+	//We assume one column named 'Date' plus several others that will be converted to ints
+	var rowConverter = function(d, i, cols) {
+		//Initial 'row' object includes only date
+		var row = {
+			date: parseTime(d.Date),  //Make a new Date object for each year + month
+		};
+		//Loop once for each vehicle type
+		for (var i = 1; i < cols.length; i++) {
+			var col = cols[i];
+			//If the value exists…
+			if (d[cols[i]]) {
+				row[cols[i]] = +d[cols[i]];  //Convert from string to int
+			} else {  //Otherwise…
+				row[cols[i]] = 0;  //Set to zero
+			}
+		}
+		return row;
+	};
+
+	function get_selected_911_types() {
+		var keys = [];
+
+		var boxes = d3.selectAll("input.checkbox:checked");
+		boxes.each(function() {
+			//console.log("check is = " + this.value);
+			if (this.value) {
+				keys.push(this.value);
+			}
+		});
+
+		return keys;
+	}
+
+	function get_valid_css_naming(raw_name) {
+		return raw_name.replace(/ /g, "").replace(/\//g, "_");
+	}
+
+	function updateChartData(the_911_type) {
+		redraw_focus_graph(the_911_type);
+		manual_brushed();
+	}
+
+	var highlight = function(d) {
+		console.log("hovered = " + d);
+		// reduce opacity of all groups
+		the_focus.selectAll(".focus_area_item").style("opacity", .1);
+		// expect the one that is hovered
+		d3.select("."+ get_valid_css_naming(d)).style("opacity", 1)
+	};
+	var noHighlight = function(d) {
+		the_focus.selectAll(".focus_area_item").style("opacity", 1)
+	};
+
+	function redraw_focus_graph(selected_911_type) {
+		//Load in data
+		d3.csv("Seattle_911_data.csv", rowConverter, function(error, data) {
+			if (error) throw error;
+			var dataset = data;
+			// init graph onload
+			if (!GRAPH_INIT) {
+				document.getElementsByTagName("input")[0].checked = true;
+				GRAPH_INIT = true;
+			}
+
+			var selected_911_types =  get_selected_911_types();
+
+			// change x & y scales accordingly
+			xScale.domain([
+					d3.min(dataset, function(d) { return d.date; }),
+					d3.max(dataset, function(d) { return d.date; })
+			]);
+			yScale.domain([
+					0,
+					d3.max(dataset, function(d) {
+						var sum = 0;
+						for (var i = 0; i < selected_911_types.length; i++) {
+							sum += d[selected_911_types[i]];
+						}
+						return sum;
+					})
+			]).nice();
+			xScale2.domain(xScale.domain());
+			yScale2.domain(yScale.domain()).nice();
+
+			// color palette
+			color_palette.domain(ALL_911_TYPES);
+
+			// debug
+			console.log("selected 911 = " + selected_911_types);
+			console.log("all 911s= " + ALL_911_TYPES);
+
+			// on main focus area, we only graphs selected 911 call types
+			// stack graph with respect to selected 911 call types
+			stack.keys(selected_911_types);
+			stack2.keys(ALL_911_TYPES);
+
+			// main focus data & context data
+			var series = stack(dataset);
+			var series2 = stack2(dataset);
+			// console.log(series);
+			// console.log(series2);
+
+			// focus: show the main areas
+			the_focus.selectAll(".focus_area_item").remove();
+			the_focus
+					.selectAll("mylayers")
+					.data(series)
+					.enter()
+					.append("path")
+					.attr("class", function(d) { return "focus_area_item " + get_valid_css_naming(d.key) })
+					.style("fill", function(d) { return color_palette(d.key); })
+					.attr("d", area);
+			// focus: draw x axis
+			if (!the_focus.selectAll(".focus.axis.x").size()) {
+				the_focus.append("g")
+					.attr("class", "focus axis x")
+					.attr("transform", "translate(0, " + svg_height + ")")
+					.call(xAxis);
+			} else {
+				d3.select("div#graph_area").transition()
+						.select(".focus.axis.x")
+						.duration(750)
+						.call(xAxis);
+			}
+			// focus: draw y axis
+			if (!the_focus.selectAll(".focus.axis.y").size()) {
+				the_focus.append("g")
+						.attr("class", "focus axis y")
+						.attr("transform", "translate(" + svg_width + ", 0)")
+						.call(yAxis);
+			} else {
+				d3.select("div#graph_area").transition()
+						.select(".focus.axis.y")
+						.duration(750)
+						.call(yAxis);
+			}
+
+			// focus: legends
+			var legend_item_size = 20;
+			// focus: legends - dots
+			the_focus.selectAll(".legend.item").remove();
+			the_focus.selectAll("myrect")
+					.data(ALL_911_TYPES)
+					.enter()
+					.append("rect")
+					.attr("class", "legend item")
+					.attr("x", svg_width + 60)
+					.attr("y", function(d,i){ return 250 + i*(legend_item_size+5)}) // 100 is where the first dot appears. 25 is the distance between dots
+					.attr("width", legend_item_size)
+					.attr("height", legend_item_size)
+					.style("fill", function(d) { return color_palette(d) })
+					.on("mouseover", highlight)
+					.on("mouseleave", noHighlight);
+			// focus: legends - labels
+			the_focus.selectAll(".legend.label").remove();
+			the_focus.selectAll("mylabels")
+					.data(ALL_911_TYPES)
+					.enter()
+					.append("text")
+					.attr("class", "legend label")
+					.attr("x", svg_width + 60 + legend_item_size*1.2)
+					.attr("y", function(d,i){ return 250 + i*(legend_item_size+5) + (legend_item_size/2)}) // 100 is where the first dot appears. 25 is the distance between dots
+					.style("fill", function(d) { return color_palette(d) })
+					.text(function(d){ return d})
+					.attr("text-anchor", "left")
+					.style("alignment-baseline", "middle")
+					.on("mouseover", highlight)
+					.on("mouseleave", noHighlight);
+
+			// context: Show the bottom context graph
+			if (!the_context.selectAll(".myArea.context").size()) {
+				the_context
+						.selectAll("mylayers")
+						.data(series2)
+						.enter()
+						.append("path")
+						.attr("class", "myArea context")
+						.style("fill", function(d) { return color_palette(d.key); })
+						.attr("d", area2);
+			}
+			// context: x axis for the context graph
+			if (!the_context.selectAll(".context.axis.x").size()) {
+				the_context.append("g")
+						.attr("class", "context axis x")
+						.attr("transform", "translate(0, " + svg_height2 + ")")
+						.call(xAxis2);
+				the_context.append("g")
+						.attr("class", "brush")
+						.call(brush)
+						.call(brush.move, xScale2.range());
+			}
+
+			// context: annotations
+			var labels = [
+					{
+						data: {date: "2010-05",	height: 2_767, msg: "Most 911 calls are AidResponse"},
+						showDate: false,
+						dy: 100,
+						dx: 0,
+						emphasize: 20
+					},
+					{
+						data: {date: "2012-07",	height: 6100, msg: "Highest 911 calls every July"},
+						showDate: true,
+						dy: 200,
+						dx: 0,
+						emphasize: 2
+					},
+					{
+						data: {date: "2016-07",	height: 7000, msg: "Highest 911 calls every July"},
+						showDate: true,
+						dy: 200,
+						dx: 0,
+						emphasize: 2
+					},
+					{
+						data: {date: "2020-03",	height: 5800, msg: "911 calls dropped significantly after COVID-19 stay-home order"},
+						showDate: true,
+						dy: 100,
+						dx: 60,
+						emphasize: 2
+					},
+				].map(l => {
+					var the_note = l.showDate ? {title: `${l.data.date}`, label: `${l.data.msg}`} : {label: `${l.data.msg}`};
+					l.note = Object.assign({}, l.note, the_note);
+					l.subject = { radius: l.emphasize};
+					//l.dy = -200;
+					return l
+		  		});
+		  	var makeAnnotations = d3.annotation()
+					.type(d3.annotationCalloutCircle)
+					.annotations(labels)
+					.accessors({
+						x: d => xScale2(parseTime(d.date)),
+						y: d => yScale2(d.height)
+					});
+		  	if (!the_context.selectAll(".annotation-space").size()) {
+		  		the_context.append("g")
+						.attr("class", "annotation-space")
+						.call(makeAnnotations);
+			}
+
+			// allow zoom feature
+			if (!the_svg.selectAll(".zoom").size()) {
+				the_svg.append("rect")
+						.attr("class", "zoom")
+						.attr("width", svg_width)
+						.attr("height", svg_height)
+						.attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+						.call(zoom);
+			}
+      });
+	}
+
+
+	d3.csv("Seattle_911_data.csv", function(data) {
+		var keys = data.columns;
+		keys.shift();
+		keys.forEach(function (item) {
+			d3.select("div#option")
+					.append("input")
+					.attr("type", "checkbox")
+					.attr("class", "checkbox")
+					.attr("name", item)
+					.attr("value", item)
+					.attr("onclick", "updateChartData(this.value);");
+			d3.select("div#option")
+					.append("label")
+					.attr('for', item)
+					.text(item);
+		});
+		ALL_911_TYPES = keys;
+	});
+
+	// INIT 1st SCENE
+	redraw_focus_graph(undefined);
+
+		</script>
+	</body>
+</html>
