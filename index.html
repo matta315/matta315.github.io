@@ -9,6 +9,9 @@
 		<!-- only works with default version https://cdnjs.com/libraries/d3-annotation/2.4.0 -->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.4.0/d3-annotation.min.js"></script>
 		<style type="text/css">
+			body {
+				font-family: sans-serif;
+			}
 			.area {
 				stroke: none;
 			}
@@ -57,11 +60,30 @@
 			font-style: oblique;
 		}
 
+		.card-style{
+			border: solid darkcyan 2px;
+			border-radius:6px;
+			padding: 0px 10px 0px 10px;
+			margin: 10px 0px 0px 20px;
+			font-size: 9pt;
+		}
+
+		.top-header {
+			background-color: blue;
+			padding: 1px;
+			margin-bottom: 15px;
+			color: white;
+			background-color: darkcyan;
+
+		}
+
 		</style>
 	</head>
 	<body>
-		<h1 align="center">Seattle 911's Call Year 2010&ndash;2020</h1>
-		<h2 align="center">What's make people call 911 in Seattle?</h2>
+		<div class="top-header">
+			<h1 align="center">Seattle 911's Call Year 2010&ndash;2020</h1>
+			<h2 align="center">What's make people call 911 in Seattle?</h2>
+		</div>
 
 		<table>
 		<tr>
@@ -75,14 +97,14 @@
 			</td>
 			<td style="padding: 0; vertical-align: top">
 				<div id="paragraph" style="display: block;">
-					<p>Project by: Anh Nguyen for<p>
-					<h3>About the data Set</h3>
+					<p style="text-align: right">Project by: Anh Nguyen </p>
+					<div class="card-style">
+					<h3>About the Data Set (<a href="https://data.seattle.gov/Public-Safety/Seattle-Real-Time-Fire-911-Calls/kzjm-xkqj" dataset_source>link to source</a>)
+</h3>
 					<p>
-						This data set conducted by <b>Seattle Fire Department 911</b> and provided by <b>City of Seattle</b> <br />
+						This data set was conducted by <b>Seattle Fire Department 911</b> and provided by <b>City of Seattle</b> <br />
 
-						<a href="https://data.seattle.gov/Public-Safety/Seattle-Real-Time-Fire-911-Calls/kzjm-xkqj" dataset_source></a>
-
-						The original data include around 1.48M observations with 7 columns: <br/>
+						The original data includes around 1.48M observations with 7 columns: <br/>
 
 						<ul>
 						  <li>Address (Location of Incident)</li>
@@ -95,20 +117,27 @@
 							<li>Incident Number</li>
 						</ul>
 					</p>
-
-					<h3> About the Top Graph </h3>
+				</div>
+				<div class="card-style">
+					<h3> About the key elements </h3>
 					<p>
-						Next paragraph..<br />
-						And new-line text..<br />
+						<ul>
+							<li> Scenes: 2 stacked area graphs <br /></li>
+							<li> Annotations: 4 notes located in 2nd stacked area graph<br/></li>
+							<li> Parameters: Check boxes located on top of the page<br/></li>
+							<li> Triggles: Brushing tool in 2nd graphs<br/></li>
+						</ul>
+						<br />
 					</p>
-
-					<h3> About the Bottom Graph </h3>
+				</div>
+				<div class="card-style">
+					<h3> Instruction </h3>
 					<p>
-
-						Next paragraph..<br />
-						And new-line text..<br />
-
-
+						<ul>
+							<li> To change scenes: clink on checkbox (can single or multi-select) <br /></li>
+							<li> To change timeline: Clich at the front of the 2nd graph, then use a box to brush over to timeline you're interested in<br/></li>
+						</ul>
+						<br />
 					</p>
 
 				</div>
@@ -434,14 +463,14 @@
 						emphasize: 20
 					},
 					{
-						data: {date: "2012-07",	height: 6100, msg: "Highest 911 calls every July"},
+						data: {date: "2012-07",	height: 6100, msg: "Highest 911 calls every July for Fire/Alarm"},
 						showDate: true,
 						dy: 180,
 						dx: 0,
 						emphasize: 2
 					},
 					{
-						data: {date: "2016-07",	height: 7000, msg: "Highest 911 calls every July"},
+						data: {date: "2016-07",	height: 7000, msg: "Highest 911 calls every July for Fire/Alarm"},
 						showDate: true,
 						dy: 180,
 						dx: 0,
